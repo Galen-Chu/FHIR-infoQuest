@@ -193,13 +193,19 @@ function switchTab(tabName) {
     event.target.classList.add('active');
 
     // Hide all tab contents
-    document.getElementById('patients-tab').style.display = 'none';
-    document.getElementById('overview-tab').style.display = 'none';
-    document.getElementById('json-tab').style.display = 'none';
+    document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
     document.getElementById('detail-view').classList.remove('active');
 
     // Show selected tab
-    document.getElementById(`${tabName}-tab`).style.display = 'block';
+    const el = document.getElementById(`${tabName}-tab`);
+    if (el) el.style.display = 'block';
+
+    // The patient search bar lives outside the tabs; only show it for Patients
+    const search = document.querySelector('.search-section');
+    if (search) search.style.display = (tabName === 'patients') ? '' : 'none';
+
+    // Lazy-render the game when its tab is opened
+    if (tabName === 'game' && window.Game) window.Game.show();
 }
 
 // Render overview
@@ -231,31 +237,111 @@ function renderOverview() {
     `;
 }
 
-// Render JSON view
-function renderJSONView() {
-    const jsonDisplay = document.getElementById('json-display');
-    jsonDisplay.innerHTML = syntaxHighlight(JSON.stringify(FHIR_DATA, null, 2));
+// Render JSON view (interactive collapsible tree)
+let jsonFilter = 'all';
+
+function getFilteredData() {
+    if (jsonFilter === 'patients') return FHIR_DATA.patients;
+    if (jsonFilter === 'observations') return FHIR_DATA.observations;
+    if (jsonFilter === 'conditions') return FHIR_DATA.conditions;
+    return FHIR_DATA;
 }
 
-// Syntax highlight JSON
-function syntaxHighlight(json) {
-    json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
-        let cls = 'json-number';
-        if (/^"/.test(match)) {
-            if (/:$/.test(match)) {
-                cls = 'json-key';
-                match = match.replace(/"/g, '');
-                match = match.replace(/:/, '');
-                return '<span class="' + cls + '">"' + match + '"</span>:';
-            } else {
-                cls = 'json-string';
-            }
-        } else if (/true|false/.test(match)) {
-            cls = 'json-boolean';
-        }
-        return '<span class="' + cls + '">' + match + '</span>';
-    });
+function jsonEsc(s) {
+    return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+
+// value: the JS value; key: property name or null; isLast: trailing comma; depth: nesting.
+function renderJsonTree(value, key, isLast, depth) {
+    const comma = isLast ? '' : ',';
+    const keyHtml = key != null ? `<span class="jtree-key">"${jsonEsc(key)}"</span>: ` : '';
+    const isArr = Array.isArray(value);
+    const isObj = !isArr && value !== null && typeof value === 'object';
+    // Arrays and the root object render open; nested objects start collapsed.
+    const collapsed = (isObj && depth > 0) ? ' collapsed' : '';
+
+    if (isArr) {
+        const items = value.map((v, i) => renderJsonTree(v, null, i === value.length - 1, depth + 1)).join('');
+        return `<div class="jtree-node">
+            <div class="jtree-row"><span class="jtree-caret" onclick="jtreeToggle(this)"></span>${keyHtml}<span class="jtree-brk">[</span><span class="jtree-meta">${value.length} item${value.length === 1 ? '' : 's'}</span><span class="jtree-ell"> … ]${comma}</span></div>
+            <div class="jtree-children">${items}</div>
+            <div class="jtree-close"><span class="jtree-brk">]</span>${comma}</div>
+        </div>`;
+    }
+    if (isObj) {
+        const entries = Object.entries(value);
+        const rt = value.resourceType ? `<span class="jtree-rt">// ${jsonEsc(value.resourceType)}</span> ` : '';
+        const items = entries.map(([k, v], i) => renderJsonTree(v, k, i === entries.length - 1, depth + 1)).join('');
+        return `<div class="jtree-node${collapsed}">
+            <div class="jtree-row"><span class="jtree-caret" onclick="jtreeToggle(this)"></span>${keyHtml}${rt}<span class="jtree-brk">{</span><span class="jtree-ell"> … }${comma}</span></div>
+            <div class="jtree-children">${items}</div>
+            <div class="jtree-close"><span class="jtree-brk">}</span>${comma}</div>
+        </div>`;
+    }
+    // primitive leaf
+    let pcls = 'jtree-str', val = JSON.stringify(value);
+    if (typeof value === 'number') pcls = 'jtree-num';
+    else if (typeof value === 'boolean') pcls = 'jtree-bool';
+    else if (value === null) { pcls = 'jtree-null'; val = 'null'; }
+    return `<div class="jtree-row jtree-leaf"><span class="jtree-pad"></span>${keyHtml}<span class="${pcls}">${jsonEsc(val)}</span>${comma}</div>`;
+}
+
+function renderJSONView() {
+    const data = getFilteredData();
+    const tree = renderJsonTree(data, null, true, 0);
+    const chips = ['all', 'patients', 'observations', 'conditions'].map(f => {
+        const label = f === 'all' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1);
+        return `<button class="jtree-chip${jsonFilter === f ? ' active' : ''}" onclick="setJsonFilter('${f}')">${label}</button>`;
+    }).join('');
+    document.getElementById('json-display').innerHTML = `
+        <div class="jtree-toolbar">
+            <div class="jtree-chips">${chips}</div>
+            <div class="jtree-tools">
+                <button class="jtree-btn" onclick="jtreeExpandAll()">Expand all</button>
+                <button class="jtree-btn" onclick="jtreeCollapseAll()">Collapse all</button>
+                <button class="jtree-btn" onclick="jtreeCopy()">Copy JSON</button>
+            </div>
+        </div>
+        <div class="jtree">${tree}</div>
+        <div id="jtree-toast" class="jtree-toast"></div>`;
+}
+
+function setJsonFilter(f) { jsonFilter = f; renderJSONView(); }
+
+function jtreeToggle(el) {
+    el.closest('.jtree-node').classList.toggle('collapsed');
+}
+
+function jtreeExpandAll() {
+    document.querySelectorAll('#json-display .jtree-node').forEach(n => n.classList.remove('collapsed'));
+}
+
+function jtreeCollapseAll() {
+    document.querySelectorAll('#json-display .jtree-node').forEach(n => n.classList.add('collapsed'));
+}
+
+function jtreeCopy() {
+    const text = JSON.stringify(getFilteredData(), null, 2);
+    const toast = document.getElementById('jtree-toast');
+    const done = () => {
+        toast.textContent = '✓ Copied to clipboard';
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 1500);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+    } else {
+        fallbackCopy(text, done);
+    }
+}
+
+function fallbackCopy(text, done) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); done(); } catch (e) { /* clipboard unavailable */ }
+    ta.remove();
 }
 
 // Helper functions

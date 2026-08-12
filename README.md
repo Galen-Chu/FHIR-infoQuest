@@ -14,7 +14,9 @@ A simple, standalone HTML + JavaScript application for learning FHIR (Fast Healt
 D:\FHIR\
 ├── index.html      # Main HTML page with styling
 ├── fhir-data.js    # Sample FHIR resources (Patient, Observation, Condition)
-├── app.js          # Application logic and interactivity
+├── app.js          # Viewer logic and interactivity
+├── game-data.js    # FHIR Quest content: codes, cases, badges, arcade banks
+├── game.js         # FHIR Quest engine: scoring, progression, rendering
 └── README.md       # This file
 ```
 
@@ -30,10 +32,33 @@ D:\FHIR\
 - **Conditions**: Medical diagnoses with status tracking
 - Real FHIR-compliant data structure
 
-### 3. Three Main Views
+### 3. Views
 - **Patients Tab**: Browse and search patient records
 - **Overview Tab**: Statistics and FHIR introduction
-- **JSON Tab**: View raw FHIR JSON data with syntax highlighting
+- **FHIR JSON Tab**: Explore raw FHIR data in an interactive, collapsible, syntax-highlighted tree — filter by resource type, copy JSON, and expand/collapse any node
+- **FHIR Quest Tab**: Play the learning game (see 🎮 FHIR Quest above)
+
+## 🎮 FHIR Quest — Learning Game
+
+New to FHIR? Don't just read the data — **play it**. Click the **🎮 FHIR Quest** tab to launch an interactive game that teaches FHIR by having you solve real clinical cases drawn from this very dataset.
+
+### How to play
+
+- **Quest mode** — Work through patient cases (e.g., "Hiding in Plain Sight"). Each case is a short investigation built from challenges that each test a different FHIR skill:
+  - **Decode** — Read LOINC & SNOMED CT codes
+  - **JSON Hunt** — Find values inside real FHIR JSON
+  - **Connect** — Follow `subject` references between resources
+  - **Build** — Construct valid FHIR resources field-by-field
+  - **Triage** — Interpret clinical meaning and status
+  - **Spot the Bug** — Find structural errors in a resource
+- **Arcade** — A timed drill to memorize LOINC/SNOMED codes. Chain correct answers for combo multipliers.
+- **Codex** — Your mastered codes and earned badges. Codes start locked and reveal as you learn them.
+
+### Progression
+
+Earn XP for correct answers, build streaks for score multipliers, level up (Chart Novice → Health Data Guru), and collect badges. Progress saves automatically in your browser via `localStorage` — no account or server required. Use **Reset progress** in the Codex to start over.
+
+The game is 100% client-side and reuses the same sample resources as the viewer, so what you learn in the game maps directly onto the data in the other tabs.
 
 ## 🎓 Learning Objectives
 
@@ -90,8 +115,10 @@ This project demonstrates:
 
 ### Explore FHIR JSON
 1. Click on the "FHIR JSON" tab
-2. View the complete FHIR data structure
-3. Color-coded JSON for easy reading
+2. Browse the data as an interactive, collapsible tree (color-coded keys, strings, numbers, and booleans)
+3. Filter by **Patients / Observations / Conditions**, or view **All**
+4. Click any node (▸/▾) to expand or collapse it; use **Expand all / Collapse all** for the whole tree
+5. Use **Copy JSON** to copy the current view to your clipboard
 
 ## 🌐 FHIR Concepts Demonstrated
 
