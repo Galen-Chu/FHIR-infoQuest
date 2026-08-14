@@ -11,7 +11,7 @@ A simple, standalone HTML + JavaScript application for learning FHIR (Fast Healt
 ## 📁 Project Structure
 
 ```
-D:\FHIR\
+FHIR-infoQuest/
 ├── index.html      # Main HTML page with styling
 ├── fhir-data.js    # Sample FHIR resources (Patient, Observation, Condition)
 ├── app.js          # Viewer logic and interactivity
@@ -36,7 +36,7 @@ D:\FHIR\
 - **Patients Tab**: Browse and search patient records
 - **Overview Tab**: Statistics and FHIR introduction
 - **FHIR JSON Tab**: Explore raw FHIR data in an interactive, collapsible, syntax-highlighted tree — filter by resource type, copy JSON, and expand/collapse any node
-- **FHIR Quest Tab**: Play the learning game (see 🎮 FHIR Quest above)
+- **FHIR Quest Tab**: Play the learning game (see 🎮 FHIR Quest below)
 
 ## 🎮 FHIR Quest — Learning Game
 
@@ -86,9 +86,9 @@ This project demonstrates:
 ## 📊 Sample Data Included
 
 ### Patients (3)
-- John Michael Smith (39 years old, Boston)
-- Emily Rose Johnson (35 years old, New York)
-- Robert James Williams (47 years old, Chicago) - Has hypertension and diabetes
+- John Michael Smith (born 1985, Boston)
+- Emily Rose Johnson (born 1990, New York)
+- Robert James Williams (born 1978, Chicago) - Has hypertension and diabetes
 
 ### Observations (11)
 - Blood pressure measurements (systolic and diastolic)
@@ -214,8 +214,8 @@ This project demonstrates:
 ## 📝 Notes
 
 - This is a **frontend-only** application for learning purposes
-- All data is stored in JavaScript (no database)
-- Data persists only during the browser session
+- All FHIR data is static, loaded from `fhir-data.js` (no database)
+- Game progress persists in the browser via `localStorage`; the FHIR data itself never changes
 - No authentication or security implementation
 - Perfect for understanding FHIR data structures
 
